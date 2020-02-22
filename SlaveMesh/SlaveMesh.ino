@@ -1,20 +1,5 @@
-
-
-//************************************************************
-// this is a simple example that uses the easyMesh library
-//
-// 1. blinks led once for every node on the mesh
-// 2. blink cycle repeats every BLINK_PERIOD
-// 3. sends a silly message to every node on the mesh at a random time between 1 and 5 seconds
-// 4. prints anything it receives to Serial.print
-//
-//
-//************************************************************
 #include <painlessMesh.h>
-#include <ESP8266WiFiMulti.h> 
-#include <ESP8266mDNS.h>
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
+
 // some gpio pin that is connected to an LED...
 // on my rig, this is 5, change to the right number of your LED.
 #define   LED             2       // GPIO number of connected LED, ON ESP-12 IS GPIO2
@@ -22,17 +7,10 @@
 #define   BLINK_PERIOD    3000 // milliseconds until cycle repeat
 #define   BLINK_DURATION  100  // milliseconds LED is on for
 
-#define   MESH_SSID       "autoMesh"
+#define   MESH_SSID       "whateverYouLike"
 #define   MESH_PASSWORD   "somethingSneaky"
 #define   MESH_PORT       5555
 
-#ifndef STASSID
-#define STASSID "Cy's Laptop"
-#define STAPSK  "lenovoyoga720"
-#endif
-
-const char* ssid = STASSID;
-const char* password = STAPSK;
 // Prototypes
 void sendMessage(); 
 void receivedCallback(uint32_t from, String & msg);
@@ -54,11 +32,9 @@ Task taskSendMessage( TASK_SECOND * 1, TASK_FOREVER, &sendMessage ); // start wi
 Task blinkNoNodes;
 bool onFlag = false;
 
-WiFiServer server(80);
-
-
-void setup(void) {
+void setup() {
   Serial.begin(115200);
+
   pinMode(LED, OUTPUT);
 
   mesh.setDebugMsgTypes(ERROR | DEBUG);  // set before init() so that you can see error messages
@@ -93,96 +69,14 @@ void setup(void) {
   });
   userScheduler.addTask(blinkNoNodes);
   blinkNoNodes.enable();
-  /*mesh.update();
-  WiFi.begin("autoMesh", "somethingSneaky");
-  randomSeed(analogRead(A0));*/
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.println("");
 
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-  if (!MDNS.begin("esp8266")) {
-    Serial.println("Error setting up MDNS responder!");
-    while (1) {
-      delay(1000);
-    }
-  }
-  Serial.println("mDNS responder started");
-
-  // Start TCP (HTTP) server
-  server.begin();
-  Serial.println("TCP server started");
-
-  // Add service to MDNS-SD
-  MDNS.addService("http", "tcp", 80);
-
+  randomSeed(analogRead(A0));
 }
-
 
 void loop() {
   mesh.update();
   digitalWrite(LED, !onFlag);
-  /*MDNS.update();
-
-  // Check if a client has connected
-  WiFiClient client = server.available();
-  if (!client) {
-    return;
-  }
-  Serial.println("");
-  Serial.println("New client");
-  // Wait for data from client to become available
-  while (client.connected() && !client.available()) {
-    delay(1);
-  }
-
-  // Read the first line of HTTP request
-  String req = client.readStringUntil('\r');
-
-  // First line of HTTP request looks like "GET /path HTTP/1.1"
-  // Retrieve the "/path" part by finding the spaces
-  int addr_start = req.indexOf(' ');
-  int addr_end = req.indexOf(' ', addr_start + 1);
-  if (addr_start == -1 || addr_end == -1) {
-    Serial.print("Invalid request: ");
-    Serial.println(req);
-    return;
-  }
-  req = req.substring(addr_start + 1, addr_end);
-  Serial.print("Request: ");
-  Serial.println(req);
-  client.flush();
-
-  String s;
-  if (req == "/") {
-    IPAddress ip = WiFi.localIP();
-    String ipStr = String(ip[0]) + '.' + String(ip[1]) + '.' + String(ip[2]) + '.' + String(ip[3]);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>Hello from ESP8266 at ";
-    s += ipStr;
-    s+=" Currently there are ";
-    s+= "infinite";
-    s+=" nodes on the network.";
-    s += "</html>\r\n\r\n";
-    Serial.println("Sending 200");
-  } else {
-    s = "HTTP/1.1 404 Not Found\r\n\r\n";
-    Serial.println("Sending 404");
-  }
-  client.print(s);
-
-  Serial.println("Done with client");
-  */
 }
-
 
 void sendMessage() {
   String msg = "Hello from node ";
@@ -224,7 +118,8 @@ void changedConnectionCallback() {
   // Reset blink task
   onFlag = false;
   blinkNoNodes.setIterations((mesh.getNodeList().size() + 1) * 2);
-  blinkNoNodes.enableDelayed(BLINK_PERIOD - (mesh.getNodeTime() % (BLINK_PERIOD*1000))/1000); 
+  blinkNoNodes.enableDelayed(BLINK_PERIOD - (mesh.getNodeTime() % (BLINK_PERIOD*1000))/1000);
+ 
   nodes = mesh.getNodeList();
 
   Serial.printf("Num nodes: %d\n", nodes.size());
